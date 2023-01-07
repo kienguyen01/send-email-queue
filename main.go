@@ -9,6 +9,7 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
+	elk "github.com/kienguyen01/send-email-queue/elk"
 )
 
 type Message struct {
@@ -21,10 +22,6 @@ type Message struct {
 }
 
 func main() {
-	client, err := NewELKClient("localhost", "9200")
-	if err != nil {
-		log.Fatal(err)
-	}
 
 	log.Println("Consumer - Connecting to the Rabbit channel")
 
@@ -64,7 +61,6 @@ func main() {
 			json.Unmarshal(d.Body, &m)
 
 			SendEmail(m)
-			client.SendLog("Receiving", m)
 		}
 	}()
 
@@ -73,6 +69,11 @@ func main() {
 }
 
 func SendEmail(m Message) {
+	elk, err := elk.NewELKClient("localhost", "9200")
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	log.Println("send email triggered")
 	from := mail.NewEmail(m.SenderName, m.SenderEmail)
 	subject := m.Subject
@@ -82,6 +83,8 @@ func SendEmail(m Message) {
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
 	response, err := client.Send(message)
+	elk.SendLog("Receiving", m)
+
 	if err != nil {
 		log.Println(err)
 	} else {
