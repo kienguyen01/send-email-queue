@@ -1,0 +1,71 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: send-email-queue
+  labels:
+    app: send-email-queue
+spec:
+  type: NodePort
+  ports:
+  - port: 8080
+    targetPort: 8080
+  selector:
+    app: send-email-queue
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: send-email-queue
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: send-email-queue
+  template:
+    metadata:
+      labels:
+        app: send-email-queue
+    spec:
+      containers:
+      - name: send-email-queue
+        image: [image-name]
+        ports:
+        - containerPort: 80
+        env:
+        - name: SENDGRID_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: SENDGRID_API_KEY
+              key: SENDGRID_API_KEY
+        - name: PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: send-email-queue
+              key: PASSWORD
+        - name: USERNAME
+          valueFrom:
+            configMapKeyRef:
+              name: send-email-queue
+              key: USERNAME
+
+#TODO determine and add resources
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: send-email-queue
+type: Opaque
+data:
+  SENDGRID_API_KEY: # [base64-encoded-api-key]
+  PASSWORD: # [base64-encoded-password]
+
+---
+
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: send-email-queue
+data:
+  username: # [username]

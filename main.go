@@ -6,10 +6,10 @@ import (
 	"log"
 	"os"
 
+	elk "github.com/kienguyen01/send-email-queue/elk"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
-	elk "github.com/kienguyen01/send-email-queue/elk"
 )
 
 type Message struct {
@@ -69,6 +69,8 @@ func main() {
 }
 
 func SendEmail(m Message) {
+	log.Printf("Start sending email")
+
 	elk, err := elk.NewELKClient("localhost", "9200")
 	if err != nil {
 		log.Fatal(err)
