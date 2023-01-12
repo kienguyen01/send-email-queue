@@ -2,10 +2,13 @@ package elk
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/elastic/go-elasticsearch/v8"
 )
@@ -17,6 +20,7 @@ type Message struct {
 	ReceiverName  string
 	Body          string
 	Subject       string
+	Timestamp     time.Time
 }
 
 type ELKClient struct {
@@ -26,10 +30,15 @@ type ELKClient struct {
 func NewELKClient(host string, port string) (*ELKClient, error) {
 	cfg := elasticsearch.Config{
 		Addresses: []string{
-			fmt.Sprintf("http://%s:%s", host, port),
+			fmt.Sprintf("https://%s:%s", host, port),
 		},
 		Username: os.Getenv("Username"),
 		Password: os.Getenv("Password"),
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		},
 	}
 	client, err := elasticsearch.NewClient(cfg)
 	if err != nil {

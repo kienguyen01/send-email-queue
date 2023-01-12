@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	elk "github.com/kienguyen01/send-email-queue/elk"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -19,6 +20,7 @@ type Message struct {
 	ReceiverName  string
 	Body          string
 	Subject       string
+	Timestamp     time.Time
 }
 
 func main() {
@@ -42,13 +44,13 @@ func main() {
 	defer ch.Close()
 
 	msgs, err := ch.Consume(
-		"test-queue", // queue
-		"",           // consumer
-		true,         // auto-ack
-		false,        // exclusive
-		false,        // no-local
-		false,        // no-wait
-		nil,          // args
+		"message", // queue
+		"",        // consumer
+		true,      // auto-ack
+		false,     // exclusive
+		false,     // no-local
+		false,     // no-wait
+		nil,       // args
 	)
 
 	//process messages from this channel
@@ -71,12 +73,13 @@ func main() {
 func SendEmail(m Message) {
 	log.Printf("Start sending email")
 
-	elk, err := elk.NewELKClient("localhost", "9200")
+	ELKClient, err := elk.NewELKClient("localhost", "9200")
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	log.Println("send email triggered")
+	//form email
 	from := mail.NewEmail(m.SenderName, m.SenderEmail)
 	subject := m.Subject
 	to := mail.NewEmail(m.ReceiverName, m.ReceiverEmail)
@@ -84,9 +87,9 @@ func SendEmail(m Message) {
 	htmlContent := ""
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY"))
-	response, err := client.Send(message)
-	elk.SendLog("Receiving", m)
 
+	//send message
+	response, err := client.Send(message)
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -94,4 +97,27 @@ func SendEmail(m Message) {
 		fmt.Println(response.Body)
 		fmt.Println(response.Headers)
 	}
+
+	//to elk
+	elkMessage := transformMessage(m)
+	errElk := elk.SendMessageToELK(ELKClient, &elkMessage, "received")
+	if errElk != nil {
+		log.Print(errElk)
+	}
+
+}
+
+func transformMessage(msg Message) elk.Message {
+
+	newMsg := elk.Message{
+		SenderEmail:   msg.SenderEmail,
+		SenderName:    msg.SenderName,
+		ReceiverEmail: msg.ReceiverEmail,
+		ReceiverName:  msg.ReceiverName,
+		Body:          msg.Body,
+		Subject:       msg.Subject,
+		Timestamp:     msg.Timestamp,
+	}
+
+	return newMsg
 }
