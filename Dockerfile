@@ -14,4 +14,4 @@ RUN go build -o /go-output
 
 EXPOSE 8080
 
-CMD ['/go-output']
+CMD ['./go-output']
