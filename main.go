@@ -27,7 +27,7 @@ func main() {
 
 	log.Println("Consumer - Connecting to the Rabbit channel")
 
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	conn, err := amqp.Dial(os.Getenv("RABBITMQ_HOST") + ":" + os.Getenv("RABBITMQ_PORT"))
 
 	if err != nil {
 		log.Println("Error in connection")
@@ -73,7 +73,7 @@ func main() {
 func SendEmail(m Message) {
 	log.Printf("Start sending email")
 
-	ELKClient, err := elk.NewELKClient("localhost", "9200")
+	ELKClient, err := elk.NewELKClient(os.Getenv("ELASTIC_HOST"), os.Getenv("ELASTIC_PORT"))
 	if err != nil {
 		log.Fatal(err)
 	}
