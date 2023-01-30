@@ -27,7 +27,7 @@ func main() {
 
 	log.Println("Consumer - Connecting to the Rabbit channel")
 
-	conn, err := amqp.Dial(os.Getenv("RABBITMQ_HOST") + ":" + os.Getenv("RABBITMQ_PORT"))
+	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672")
 
 	if err != nil {
 		log.Println("Error in connection")
